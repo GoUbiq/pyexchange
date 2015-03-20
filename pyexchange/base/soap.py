@@ -13,8 +13,14 @@ from pytz import utc
 
 from ..exceptions import FailedExchangeException
 
+MSG_NS = u'http://schemas.microsoft.com/exchange/services/2006/messages'
+TYPE_NS = u'http://schemas.microsoft.com/exchange/services/2006/types'
 SOAP_NS = u'http://schemas.xmlsoap.org/soap/envelope/'
 
+NAMESPACES = {u'm': MSG_NS, u't': TYPE_NS, u's': SOAP_NS}
+
+M = ElementMaker(namespace=MSG_NS, nsmap=NAMESPACES)
+T = ElementMaker(namespace=TYPE_NS, nsmap=NAMESPACES)
 SOAP_NAMESPACES = {u's': SOAP_NS}
 S = ElementMaker(namespace=SOAP_NS, nsmap=SOAP_NAMESPACES)
 
@@ -56,8 +62,9 @@ class ExchangeServiceSOAP(object):
 
     if fault_nodes:
       fault = fault_nodes[0]
+      print etree.tostring(fault_nodes[0])
       log.debug(etree.tostring(fault, pretty_print=True))
-      raise FailedExchangeException(u"SOAP Fault from Exchange server", fault.text)
+      # raise FailedExchangeException(u"SOAP Fault from Exchange server", fault.text)
 
   def _send_soap_request(self, xml, headers=None, retries=2, timeout=30, encoding="utf-8"):
     body = etree.tostring(xml, encoding=encoding)
@@ -66,7 +73,7 @@ class ExchangeServiceSOAP(object):
     return response
 
   def _wrap_soap_xml_request(self, exchange_xml):
-    root = S.Envelope(S.Body(exchange_xml))
+    root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP1'})),S.Body(exchange_xml))
     return root
 
   def _parse_date(self, date_string):

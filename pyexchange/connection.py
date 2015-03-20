@@ -60,12 +60,15 @@ class ExchangeNTLMAuthConnection(ExchangeBaseConnection):
     if not self.session:
       self.session = self.build_session()
 
-    try:
-      response = self.session.post(self.url, data=body, headers=headers)
-      response.raise_for_status()
-    except requests.exceptions.RequestException as err:
-      log.debug(err.response.content)
-      raise FailedExchangeException(u'Unable to connect to Exchange: %s' % err)
+    # try:
+    print self.url
+    print body
+    print headers
+    response = self.session.post(self.url, data=body, headers=headers, verify=False)
+      # response.raise_for_status()
+    # except requests.exceptions.RequestException as err:
+      # log.debug(err.response.content)
+      # raise FailedExchangeException(u'Unable to connect to Exchange: %s' % err)
 
     log.info(u'Got response: {code}'.format(code=response.status_code))
     log.debug(u'Got response headers: {headers}'.format(headers=response.headers))

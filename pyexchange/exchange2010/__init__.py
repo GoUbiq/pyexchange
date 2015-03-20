@@ -36,6 +36,16 @@ class Exchange2010Service(ExchangeServiceSOAP):
   def folder(self):
     return Exchange2010FolderService(service=self)
 
+  def get_rooms(self, room_list_email):
+    body = soap_request.get_rooms(room_list_email)
+    response_xml = self.send(body)
+    return response_xml
+
+  def get_room_lists(self):
+    body = soap_request.get_room_lists()
+    response_xml = self.send(body)
+    return response_xml
+
   def _send_soap_request(self, body, headers=None, retries=2, timeout=30, encoding="utf-8"):
     headers = {
       "Accept": "text/xml",
@@ -54,7 +64,7 @@ class Exchange2010Service(ExchangeServiceSOAP):
     # then flip out
 
     response_codes = xml_tree.xpath(u'//m:ResponseCode', namespaces=soap_request.NAMESPACES)
-
+    print etree.tostring(response_codes[0])
     if not response_codes:
       raise FailedExchangeException(u"Exchange server did not return a status response", None)
 

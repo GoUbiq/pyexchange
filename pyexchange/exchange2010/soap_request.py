@@ -31,7 +31,7 @@ DISTINGUISHED_IDS = (
 
 def exchange_header():
 
-  return T.RequestServerVersion({u'Version': u'Exchange2010'})
+  return T.RequestServerVersion({u'Version': u'Exchange2010_SP1'})
 
 
 def resource_node(element, resources):
@@ -75,6 +75,37 @@ def delete_field(field_uri):
 
   return root
 
+def get_room_lists():
+  """
+      Get Room Lists
+
+      <soap:Body>
+        <m:GetRoomLists />
+      </soap:Body>
+
+  """
+  root = M.GetRoomLists()
+  return root
+
+def get_rooms(room_list_email):
+  """
+
+      Get Room Lists
+
+
+    <m:GetRooms>
+      <m:RoomList>
+        <t:EmailAddress>RoomList@contoso.com</t:EmailAddress>
+      </m:RoomList>
+    </m:GetRooms>
+
+  """
+  root = M.GetRooms(
+    M.RoomList(
+      T.EmailAddress(room_list_email)
+    )
+  )
+  return root
 
 def get_item(exchange_id, format=u"Default"):
   """
