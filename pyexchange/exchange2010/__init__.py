@@ -39,7 +39,19 @@ class Exchange2010Service(ExchangeServiceSOAP):
   def get_rooms(self, room_list_email):
     body = soap_request.get_rooms(room_list_email)
     response_xml = self.send(body)
-    return response_xml
+# <m:GetRoomsResponse xmlns:m=>NoError</m:ResponseCode><m:Rooms><t:Room><t:Id><t:Name>Room 1</t:Name><t:EmailAddress>room1@testdrive.com</t:EmailAddress><t:RoutingType>SMTP</t:RoutingType><t:MailboxType>Mailbox</t:MailboxType></t:Id></t:Room></m:Rooms></m:GetRoomsResponse></s:Body></s:Envelope>
+    rooms = response_xml.xpath(u'//m:GetRoomsResponse/m:Rooms', namespaces=soap_request.NAMESPACES)
+    room_emails = []
+    for room in rooms:
+      property_map = {
+        u'email': {u'xpath': u'//m:Rooms/t:Room/t:Id/t:EmailAddress'},
+      }      
+      result = self._xpath_to_dict(element=room, property_map=property_map, namespace_map=soap_request.NAMESPACES)
+      room_emails.append(result.get("email"))
+
+
+    # rooms = response.xpath(u'//m:Items/t:CalendarItem/t:RequiredAttendees/t:Attendee', namespaces=soap_request.NAMESPACES)
+    return room_emails
 
   def get_room_lists(self):
     body = soap_request.get_room_lists()
@@ -64,7 +76,6 @@ class Exchange2010Service(ExchangeServiceSOAP):
     # then flip out
 
     response_codes = xml_tree.xpath(u'//m:ResponseCode', namespaces=soap_request.NAMESPACES)
-    print etree.tostring(response_codes[0])
     if not response_codes:
       raise FailedExchangeException(u"Exchange server did not return a status response", None)
 
@@ -101,15 +112,15 @@ class Exchange2010CalendarService(BaseExchangeCalendarService):
   def new_event(self, **properties):
     return Exchange2010CalendarEvent(service=self.service, calendar_id=self.calendar_id, **properties)
 
-  def list_events(self, start=None, end=None, details=False):
-    return Exchange2010CalendarEventList(service=self.service, start=start, end=end, details=details)
+  def list_events(self, start=None, end=None, details=False, mailbox_address=None):
+    return Exchange2010CalendarEventList(service=self.service, start=start, end=end, details=details, mailbox_address=mailbox_address)
 
 
 class Exchange2010CalendarEventList(object):
   """
   Creates & Stores a list of Exchange2010CalendarEvent items in the "self.events" variable.
   """
-  def __init__(self, service=None, start=None, end=None, details=False):
+  def __init__(self, service=None, start=None, end=None, details=False, mailbox_address=None):
     self.service = service
     self.count = 0
     self.start = start
@@ -117,9 +128,9 @@ class Exchange2010CalendarEventList(object):
     self.events = list()
     self.event_ids = list()
     self.details = details
-
+    self.mailbox_address = mailbox_address
     # This request uses a Calendar-specific query between two dates.
-    body = soap_request.get_calendar_items(format=u'AllProperties', start=self.start, end=self.end)
+    body = soap_request.get_calendar_items(format=u'AllProperties', start=self.start, end=self.end, mailbox_address=self.mailbox_address)
     response_xml = self.service.send(body)
     self._parse_response_for_all_events(response_xml)
 

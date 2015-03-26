@@ -147,9 +147,19 @@ def get_item(exchange_id, format=u"Default"):
   )
   return root
 
-def get_calendar_items(format=u"Default", start=None, end=None, max_entries=999999):
+def get_calendar_items(format=u"Default", start=None, end=None, max_entries=999999,mailbox_address=None):
   start = start.strftime(EXCHANGE_DATETIME_FORMAT)
   end = end.strftime(EXCHANGE_DATETIME_FORMAT)
+
+
+  if mailbox_address != None:
+    folder_ids_element = T.DistinguishedFolderId({u"Id":"calendar"},
+        T.Mailbox(
+          T.EmailAddress(u"room1@testdrive.com")
+          )
+        )
+  else:
+    folder_ids_element = T.DistinguishedFolderId(Id=u"calendar")
 
   root = M.FindItem(
     {u'Traversal': u'Shallow'},
@@ -161,7 +171,21 @@ def get_calendar_items(format=u"Default", start=None, end=None, max_entries=9999
       u'StartDate': start,
       u'EndDate': end,
     }),
-    M.ParentFolderIds(T.DistinguishedFolderId(Id=u"calendar")),
+    M.ParentFolderIds(folder_ids_element),
+  )
+
+  root = M.FindItem(
+    {u'Traversal': u'Shallow'},
+    M.ItemShape(
+      T.BaseShape(format)
+    ),
+    M.CalendarView({
+      u'MaxEntriesReturned': _unicode(max_entries),
+      u'StartDate': start,
+      u'EndDate': end,
+    }),
+    M.ParentFolderIds(folder_ids_element),
+      
   )
 
   return root
