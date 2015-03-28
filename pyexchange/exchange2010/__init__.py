@@ -42,21 +42,33 @@ class Exchange2010Service(ExchangeServiceSOAP):
 # <m:GetRoomsResponse xmlns:m=>NoError</m:ResponseCode><m:Rooms><t:Room><t:Id><t:Name>Room 1</t:Name><t:EmailAddress>room1@testdrive.com</t:EmailAddress><t:RoutingType>SMTP</t:RoutingType><t:MailboxType>Mailbox</t:MailboxType></t:Id></t:Room></m:Rooms></m:GetRoomsResponse></s:Body></s:Envelope>
     rooms = response_xml.xpath(u'//m:GetRoomsResponse/m:Rooms', namespaces=soap_request.NAMESPACES)
     room_emails = []
+    result = {}
     for room in rooms:
       property_map = {
-        u'email': {u'xpath': u'//m:Rooms/t:Room/t:Id/t:EmailAddress'},
+        u'name': {u'xpath': u'//m:Rooms/t:Room/t:Id/t:Name'},
+        u'email': {u'xpath': u'//m:Rooms/t:Room/t:Id/t:EmailAddress'}
       }      
       result = self._xpath_to_dict(element=room, property_map=property_map, namespace_map=soap_request.NAMESPACES)
-      room_emails.append(result.get("email"))
 
-
-    # rooms = response.xpath(u'//m:Items/t:CalendarItem/t:RequiredAttendees/t:Attendee', namespaces=soap_request.NAMESPACES)
-    return room_emails
+    return result
 
   def get_room_lists(self):
     body = soap_request.get_room_lists()
     response_xml = self.send(body)
-    return response_xml
+# <m:GetRoomListsResponse xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" ResponseClass="Success"><m:ResponseCode>NoError</m:ResponseCode><m:RoomLists><t:Address><t:Name>Building 21 Conference Rooms</t:Name><t:EmailAddress>Building21ConferenceRooms@exchange-497.apparatus-testdrive.com</t:EmailAddress><t:RoutingType>SMTP</t:RoutingType><t:MailboxType>PublicDL</t:MailboxType></t:Address><t:Address><t:Name>Building 32 Conference Rooms</t:Name><t:EmailAddress>Building32ConferenceRooms@exchange-497.apparatus-testdrive.com</t:EmailAddress><t:RoutingType>SMTP</t:RoutingType><t:MailboxType>PublicDL</t:MailboxType></t:Address></m:RoomLists></m:GetRoomListsResponse>
+    room_lists_response = response_xml.xpath(u'//m:GetRoomListsResponse/m:RoomLists', namespaces=soap_request.NAMESPACES)
+    room_lists_dict = {}
+    result = {}
+    for room_list in room_lists_response:
+      property_map = {
+        u'name': {u'xpath': u'//m:RoomLists/t:Address/t:Name'},
+        u'email': {u'xpath': u'//m:RoomLists/t:Address/t:EmailAddress'}
+      }      
+      result = self._xpath_to_dict(element=room_list, property_map=property_map, namespace_map=soap_request.NAMESPACES)
+      print result
+
+    # rooms = response.xpath(u'//m:Items/t:CalendarItem/t:RequiredAttendees/t:Attendee', namespaces=soap_request.NAMESPACES)
+    return result
 
   def _send_soap_request(self, body, headers=None, retries=2, timeout=30, encoding="utf-8"):
     headers = {

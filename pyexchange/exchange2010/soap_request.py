@@ -155,7 +155,7 @@ def get_calendar_items(format=u"Default", start=None, end=None, max_entries=9999
   if mailbox_address != None:
     folder_ids_element = T.DistinguishedFolderId({u"Id":"calendar"},
         T.Mailbox(
-          T.EmailAddress(u"room1@testdrive.com")
+          T.EmailAddress(unicode(mailbox_address))
           )
         )
   else:

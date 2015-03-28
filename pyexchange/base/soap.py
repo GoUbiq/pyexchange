@@ -73,7 +73,7 @@ class ExchangeServiceSOAP(object):
     return response
 
   def _wrap_soap_xml_request(self, exchange_xml):
-    root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP1'})),S.Body(exchange_xml))
+    root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'})),S.Body(exchange_xml))
     return root
 
   def _parse_date(self, date_string):
