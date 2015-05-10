@@ -143,6 +143,7 @@ class Exchange2010CalendarEventList(object):
     self.mailbox_address = mailbox_address
     # This request uses a Calendar-specific query between two dates.
     body = soap_request.get_calendar_items(format=u'AllProperties', start=self.start, end=self.end, mailbox_address=self.mailbox_address)
+    import pdb; pdb.set_trace();
     response_xml = self.service.send(body)
     self._parse_response_for_all_events(response_xml)
 

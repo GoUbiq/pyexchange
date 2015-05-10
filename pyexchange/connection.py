@@ -113,7 +113,7 @@ class ExchangeHTTPBasicAuthConnection(ExchangeBaseConnection):
       self.session = self.build_session()
 
     try:
-      response = self.session.post(self.url, data=body, headers=headers, verify=False)
+      response = self.session.post(self.url, data=body, headers=headers, verify=True)
       response.raise_for_status()
     except requests.exceptions.RequestException as err:
       log.debug(err.response)
@@ -122,4 +122,6 @@ class ExchangeHTTPBasicAuthConnection(ExchangeBaseConnection):
     log.info(u'Got response: {code}'.format(code=response.status_code))
     log.debug(u'Got response headers: {headers}'.format(headers=response.headers))
     log.debug(u'Got body: {body}'.format(body=response.text))
+
+    return response.text
 

@@ -174,20 +174,6 @@ def get_calendar_items(format=u"Default", start=None, end=None, max_entries=9999
     M.ParentFolderIds(folder_ids_element),
   )
 
-  root = M.FindItem(
-    {u'Traversal': u'Shallow'},
-    M.ItemShape(
-      T.BaseShape(format)
-    ),
-    M.CalendarView({
-      u'MaxEntriesReturned': _unicode(max_entries),
-      u'StartDate': start,
-      u'EndDate': end,
-    }),
-    M.ParentFolderIds(folder_ids_element),
-      
-  )
-
   return root
 
 
