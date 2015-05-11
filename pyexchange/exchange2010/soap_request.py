@@ -172,6 +172,21 @@ def get_calendar_items(format=u"Default", start=None, end=None, max_entries=9999
       u'EndDate': end,
     }),
     M.ParentFolderIds(folder_ids_element),
+    )  
+
+  
+
+  return root
+
+def get_folders(format=u"Default"):
+  folder_ids_element = T.DistinguishedFolderId({u"Id":"msgfolderroot"})
+        
+  root = M.FindFolder(
+  {u'Traversal': u'Deep'},
+  M.FolderShape(
+    T.BaseShape(format)
+  ),
+  M.ParentFolderIds(folder_ids_element),
   )
 
   return root
@@ -293,7 +308,18 @@ def find_folder(parent_id, format=u"Default"):
   )
   return root
 
+def find_folder_deep(parent_id, format=u"Default"):
+  id = T.DistinguishedFolderId(Id=parent_id) if parent_id in DISTINGUISHED_IDS else T.FolderId(Id=parent_id)
 
+  root = M.FindFolder(
+    {u'Traversal': u'Deep'},
+    M.FolderShape(
+      T.BaseShape(format)
+    ),
+    M.ParentFolderIds(id)
+  )
+  return root
+  
 def delete_folder(folder):
 
   root = M.DeleteFolder(

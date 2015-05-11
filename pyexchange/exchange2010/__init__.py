@@ -144,7 +144,7 @@ class Exchange2010CalendarEventList(object):
     # This request uses a Calendar-specific query between two dates.
     body = soap_request.get_calendar_items(format=u'AllProperties', start=self.start, end=self.end, mailbox_address=self.mailbox_address)
     import pdb; pdb.set_trace();
-    response_xml = self.service.send(body)
+    response_xml = self.service.send(body, mailbox_address=mailbox_address)
     self._parse_response_for_all_events(response_xml)
 
     # Populate the event ID list, for convenience reasons.
@@ -782,7 +782,7 @@ class Exchange2010FolderService(BaseExchangeFolderService):
 
     return Exchange2010Folder(service=self.service, **properties)
 
-  def find_folder(self, parent_id):
+  def find_folder(self, parent_id, deep=False):
     """
       find_folder(parent_id)
       :param str parent_id:  The parent folder to list.
@@ -801,8 +801,10 @@ class Exchange2010FolderService(BaseExchangeFolderService):
         for folder in folders:
           folder.delete()
     """
-
-    body = soap_request.find_folder(parent_id=parent_id, format=u'AllProperties')
+    if not deep:
+      body = soap_request.find_folder(parent_id=parent_id, format=u'AllProperties')
+    else:
+      body = soap_request.find_folder_deep(parent_id=parent_id, format=u'AllProperties')
     response_xml = self.service.send(body)
     return self._parse_response_for_find_folder(response_xml)
 

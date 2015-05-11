@@ -34,8 +34,8 @@ class ExchangeServiceSOAP(object):
   def __init__(self, connection):
     self.connection = connection
 
-  def send(self, xml, headers=None, retries=4, timeout=30, encoding="utf-8"):
-    request_xml = self._wrap_soap_xml_request(xml)
+  def send(self, xml, mailbox_address=None, headers=None, retries=4, timeout=30, encoding="utf-8"):
+    request_xml = self._wrap_soap_xml_request(xml, mailbox_address)
     log.info(etree.tostring(request_xml, encoding=encoding, pretty_print=True))
     response = self._send_soap_request(request_xml, headers=headers, retries=retries, timeout=timeout, encoding=encoding)
     return self._parse(response, encoding=encoding)
@@ -72,8 +72,11 @@ class ExchangeServiceSOAP(object):
     response = self.connection.send(body, headers, retries, timeout)
     return response
 
-  def _wrap_soap_xml_request(self, exchange_xml):
-    root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'})),S.Body(exchange_xml))
+  # def _add_impersonation_header(self, exchange_xml):
+
+
+  def _wrap_soap_xml_request(self, exchange_xml, mailbox_address):
+    root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'}), T.ExchangeImpersonation(T.ConnectingSID(T.SmtpAddress(mailbox_address)))), S.Body(exchange_xml))
     return root
 
   def _parse_date(self, date_string):
