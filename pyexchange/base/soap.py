@@ -75,8 +75,11 @@ class ExchangeServiceSOAP(object):
   # def _add_impersonation_header(self, exchange_xml):
 
 
-  def _wrap_soap_xml_request(self, exchange_xml, mailbox_address):
-    root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'}), T.ExchangeImpersonation(T.ConnectingSID(T.SmtpAddress(mailbox_address)))), S.Body(exchange_xml))
+  def _wrap_soap_xml_request(self, exchange_xml, mailbox_address='Furnace-Velocity@goubiq.com'):
+    if mailbox_address is None:
+      root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'})), S.Body(exchange_xml))
+    else:
+      root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'}), T.ExchangeImpersonation(T.ConnectingSID(T.SmtpAddress(mailbox_address)))), S.Body(exchange_xml))
     return root
 
   def _parse_date(self, date_string):
