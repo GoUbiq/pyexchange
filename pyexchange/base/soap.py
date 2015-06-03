@@ -10,6 +10,7 @@ from lxml import etree
 from lxml.builder import ElementMaker
 from datetime import datetime
 from pytz import utc
+from dateutil import parser
 
 from ..exceptions import FailedExchangeException
 
@@ -29,7 +30,7 @@ log = logging.getLogger('pyexchange')
 
 class ExchangeServiceSOAP(object):
 
-  EXCHANGE_DATE_FORMAT = u"%Y-%m-%dT%H:%M:%SZ"
+  EXCHANGE_DATE_FORMAT = u"%Y-%m-%dT%H:%M:%S%z"
 
   def __init__(self, connection):
     self.connection = connection
@@ -75,17 +76,17 @@ class ExchangeServiceSOAP(object):
   # def _add_impersonation_header(self, exchange_xml):
 
 
-  def _wrap_soap_xml_request(self, exchange_xml, mailbox_address='Furnace-Velocity@goubiq.com'):
+  def _wrap_soap_xml_request(self, exchange_xml, mailbox_address=None):
     if mailbox_address is None:
       root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'})), S.Body(exchange_xml))
     else:
-      root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'}), T.ExchangeImpersonation(T.ConnectingSID(T.SmtpAddress(mailbox_address)))), S.Body(exchange_xml))
+      root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'}), T.ExchangeImpersonation(T.ConnectingSID(T.SmtpAddress(mailbox_address))), T.TimeZoneContext(T.TimeZoneDefinition({u'Id':u'UTC'}))), S.Body(exchange_xml))
     return root
 
   def _parse_date(self, date_string):
-    date = datetime.strptime(date_string, self.EXCHANGE_DATE_FORMAT)
-    date = date.replace(tzinfo=utc)
-
+    # date = datetime.strptime(date_str, self.EXCHANGE_DATE_FORMAT)
+    date = parser.parse(date_string)
+    # date = date.replace(tzinfo=utc)
     return date
 
   def _parse_date_only_naive(self, date_string):

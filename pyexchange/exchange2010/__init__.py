@@ -17,10 +17,17 @@ from . import soap_request
 from lxml import etree
 from copy import deepcopy
 from datetime import date
+from pytz import timezone
 import warnings
 
 log = logging.getLogger("pyexchange")
 
+NA_TIMEZONES = {
+  "Eastern Standard Time": timezone("US/Eastern"),
+  "Pacific Standard Time": timezone("US/Pacific"),
+  "Mountain Standard Time": timezone("US/Mountain"),
+  "Central Standard Time": timezone("US/Central"),
+}
 
 class Exchange2010Service(ExchangeServiceSOAP):
 
@@ -143,7 +150,7 @@ class Exchange2010CalendarEventList(object):
     self.mailbox_address = mailbox_address
     # This request uses a Calendar-specific query between two dates.
     body = soap_request.get_calendar_items(format=u'AllProperties', start=self.start, end=self.end, mailbox_address=self.mailbox_address)
-    import pdb; pdb.set_trace();
+    # import pdb; pdb.set_trace();
     response_xml = self.service.send(body, mailbox_address=mailbox_address)
     self._parse_response_for_all_events(response_xml)
 
@@ -524,6 +531,23 @@ class Exchange2010CalendarEvent(BaseExchangeCalendarEvent):
     else:
       return None, None
 
+  def _parse_response_for_startend_timezones(self, response):
+    start_elements = response.xpath(u'//m:Items/t:CalendarItem/t:StartTimeZone', namespaces=soap_request.NAMESPACES)
+    end_elements = response.xpath(u'//m:Items/t:CalendarItem/t:EndTimeZone', namespaces=soap_request.NAMESPACES)
+    start_tz = ""
+    end_tz = ""
+    if start_elements:
+      id_element = start_elements[0]
+      start_tz = id_element.get(u"Id", None)
+    else:
+      start_tz = None
+    if end_elements:
+      id_element = end_elements[0]
+      end_tz = id_element.get(u"Id", None)
+    else:
+      end_tz = None
+    return start_tz, end_tz
+
   def _parse_response_for_get_event(self, response):
 
     result = self._parse_event_properties(response)
@@ -626,6 +650,25 @@ class Exchange2010CalendarEvent(BaseExchangeCalendarEvent):
 
       elif recurrence_node.find('t:AbsoluteYearlyRecurrence', namespaces=soap_request.NAMESPACES) is not None:
         result['recurrence'] = 'yearly'
+
+    # result['start_tz'] = timezone("US/Eastern")
+    # result['end_tz'] = timezone("US/Eastern")
+    # import pdb; pdb.set_trace()
+    try:
+      start_timezone, end_timezone = self._parse_response_for_startend_timezones(response)
+      try:
+        result['start'] = result['start'].astimezone(NA_TIMEZONES[start_timezone])
+        # result['start_tz'] = timezone("US/Eastern")
+        # result['end_tz'] = timezone("US/Eastern")
+      except KeyError:
+        log.error("Couldn't find a matching timezone for {0}".format(start_timezone))
+      try:
+        result['end'] = result['end'].astimezone(NA_TIMEZONES[end_timezone])
+      except KeyError:
+        log.error("Couldn't find a matching timezone for {0}".format(end_timezone)) 
+    except IndexError:
+      start_timezone = None
+      end_timezone = None
 
     return result
 
