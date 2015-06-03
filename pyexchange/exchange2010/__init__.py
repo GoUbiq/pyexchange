@@ -654,6 +654,8 @@ class Exchange2010CalendarEvent(BaseExchangeCalendarEvent):
     # result['start_tz'] = timezone("US/Eastern")
     # result['end_tz'] = timezone("US/Eastern")
     # import pdb; pdb.set_trace()
+    # read this for background
+    # https://msdn.microsoft.com/en-us/library/office/dn789029%28v=exchg.150%29.aspx?f=255&MSPPError=-2147217396#sectionSection1
     try:
       start_timezone, end_timezone = self._parse_response_for_startend_timezones(response)
       try:
