@@ -16,114 +16,119 @@ log = logging.getLogger('pyexchange')
 
 
 class ExchangeBaseConnection(object):
-  """ Base class for Exchange connections."""
+    """ Base class for Exchange connections."""
 
-  def send(self, body, headers=None, retries=2, timeout=30, encoding="utf-8"):
-    raise NotImplementedError
+    def send(self, body, headers=None, retries=2, timeout=30, encoding="utf-8"):
+        raise NotImplementedError
 
 
 class ExchangeNTLMAuthConnection(ExchangeBaseConnection):
-  """ Connection to Exchange that uses NTLM authentication """
+    """ Connection to Exchange that uses NTLM authentication """
 
-  def __init__(self, url, username, password, verify_certificate=True, **kwargs):
-    self.url = url
-    self.username = username
-    self.password = password
-    self.verify_certificate = verify_certificate
-    self.handler = None
-    self.session = None
-    self.password_manager = None
+    def __init__(self, url, username, password, verify_certificate=True, **kwargs):
+        self.url = url
+        self.username = username
+        self.password = password
+        self.verify_certificate = verify_certificate
+        self.handler = None
+        self.session = None
+        self.password_manager = None
 
-  def build_password_manager(self):
-    if self.password_manager:
-      return self.password_manager
+    def build_password_manager(self):
+        if self.password_manager:
+            return self.password_manager
 
-    log.debug(u'Constructing NTLM auth password manager')
+        log.debug(u'Constructing NTLM auth password manager')
 
-    self.password_manager = HttpNtlmAuth(self.username, self.password)
+        self.password_manager = HttpNtlmAuth(self.username, self.password)
 
-    return self.password_manager
+        return self.password_manager
 
-  def build_session(self):
-    if self.session:
-      return self.session
+    def build_session(self):
+        if self.session:
+            return self.session
 
-    log.debug(u'Constructing NTLM auth opener')
+        log.debug(u'Constructing NTLM auth opener')
 
-    self.password_manager = self.build_password_manager()
+        self.password_manager = self.build_password_manager()
 
-    self.session = requests.Session()
-    self.session.auth = self.password_manager
+        self.session = requests.Session()
+        self.session.auth = self.password_manager
 
-    return self.session
+        return self.session
 
-  def send(self, body, headers=None, retries=2, timeout=30, encoding=u"utf-8"):
-    if not self.session:
-      self.session = self.build_session()
+    def send(self, body, headers=None, retries=2, timeout=30, encoding=u"utf-8"):
+        if not self.session:
+            self.session = self.build_session()
 
-    try:
-      response = self.session.post(self.url, data=body, headers=headers, verify = self.verify_certificate)
-      response.raise_for_status()
-    except requests.exceptions.RequestException as err:
-      log.debug(err.response.content)
-      raise FailedExchangeException(u'Unable to connect to Exchange with NTLM: %s' % err)
+        try:
+            response = self.session.post(
+                self.url, data=body, headers=headers, verify=self.verify_certificate)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as err:
+            log.debug(err.response.content)
+            raise FailedExchangeException(
+                u'Unable to connect to Exchange with NTLM: %s' % err)
 
-    log.info(u'Got response: {code}'.format(code=response.status_code))
-    log.debug(u'Got response headers: {headers}'.format(headers=response.headers))
-    log.debug(u'Got body: {body}'.format(body=response.text))
+        log.info(u'Got response: {code}'.format(code=response.status_code))
+        log.debug(u'Got response headers: {headers}'.format(
+            headers=response.headers))
+        log.debug(u'Got body: {body}'.format(body=response.text))
 
-    return response.text
+        return response.text
 
 
 class ExchangeBasicAuthConnection(ExchangeBaseConnection):
-  """ Connection to Exchange, Office365 that uses Basic authentication """
+    """ Connection to Exchange, Office365 that uses Basic authentication """
 
-  def __init__(self, url, username, password, verify_certificate=True, **kwargs):
-    self.url = url
-    self.username = username
-    self.password = password
-    self.verify_certificate = verify_certificate
-    self.handler = None
-    self.session = None
-    self.password_manager = None
+    def __init__(self, url, username, password, verify_certificate=True, **kwargs):
+        self.url = url
+        self.username = username
+        self.password = password
+        self.verify_certificate = verify_certificate
+        self.handler = None
+        self.session = None
+        self.password_manager = None
 
-  def build_password_manager(self):
-    if self.password_manager:
-      return self.password_manager
+    def build_password_manager(self):
+        if self.password_manager:
+            return self.password_manager
 
-    log.debug(u'Constructing basic auth password manager')
+        log.debug(u'Constructing basic auth password manager')
 
-    self.password_manager = HTTPBasicAuth(self.username, self.password)
+        self.password_manager = HTTPBasicAuth(self.username, self.password)
 
-    return self.password_manager
+        return self.password_manager
 
-  def build_session(self):
-    if self.session:
-      return self.session
+    def build_session(self):
+        if self.session:
+            return self.session
 
-    log.debug(u'Constructing opener with Basic auth')
+        log.debug(u'Constructing opener with Basic auth')
 
-    self.password_manager = self.build_password_manager()
+        self.password_manager = self.build_password_manager()
 
-    self.session = requests.Session()
-    self.session.auth = self.password_manager
+        self.session = requests.Session()
+        self.session.auth = self.password_manager
 
-    return self.session
+        return self.session
 
-  def send(self, body, headers=None, retries=2, timeout=30, encoding=u"utf-8"):
-    if not self.session:
-      self.session = self.build_session()
+    def send(self, body, headers=None, retries=2, timeout=30, encoding=u"utf-8"):
+        if not self.session:
+            self.session = self.build_session()
 
-    try:
-      response = self.session.post(self.url, data=body, headers=headers, verify = self.verify_certificate)
-      response.raise_for_status()
-    except requests.exceptions.RequestException as err:
-      log.debug(err.response.content)
-      raise FailedExchangeException(u'Unable to connect to Exchange with Basic auth: %s' % err)
+        try:
+            response = self.session.post(
+                self.url, data=body, headers=headers, verify=self.verify_certificate)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as err:
+            log.debug(err.response.content)
+            raise FailedExchangeException(
+                u'Unable to connect to Exchange with Basic auth: %s' % err)
 
-    log.info(u'Got response: {code}'.format(code=response.status_code))
-    log.debug(u'Got response headers: {headers}'.format(headers=response.headers))
-    log.debug(u'Got body: {body}'.format(body=response.text))
+        log.info(u'Got response: {code}'.format(code=response.status_code))
+        log.debug(u'Got response headers: {headers}'.format(
+            headers=response.headers))
+        log.debug(u'Got body: {body}'.format(body=response.text))
 
-    return response.text
-
+        return response.text

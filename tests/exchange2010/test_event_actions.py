@@ -15,45 +15,48 @@ from .fixtures import *
 
 
 class Test_EventActions(unittest.TestCase):
-  event = None
+    event = None
 
-  @classmethod
-  def setUpClass(cls):
-    cls.service = Exchange2010Service(connection=ExchangeNTLMAuthConnection(url=FAKE_EXCHANGE_URL, username=FAKE_EXCHANGE_USERNAME, password=FAKE_EXCHANGE_PASSWORD))
-    cls.get_change_key_response = HTTPretty.Response(body=GET_ITEM_RESPONSE_ID_ONLY.encode('utf-8'), status=200, content_type='text/xml; charset=utf-8')
-    cls.update_event_response   = HTTPretty.Response(body=UPDATE_ITEM_RESPONSE.encode('utf-8'), status=200, content_type='text/xml; charset=utf-8')
+    @classmethod
+    def setUpClass(cls):
+        cls.service = Exchange2010Service(connection=ExchangeNTLMAuthConnection(
+            url=FAKE_EXCHANGE_URL, username=FAKE_EXCHANGE_USERNAME, password=FAKE_EXCHANGE_PASSWORD))
+        cls.get_change_key_response = HTTPretty.Response(body=GET_ITEM_RESPONSE_ID_ONLY.encode(
+            'utf-8'), status=200, content_type='text/xml; charset=utf-8')
+        cls.update_event_response = HTTPretty.Response(body=UPDATE_ITEM_RESPONSE.encode(
+            'utf-8'), status=200, content_type='text/xml; charset=utf-8')
 
+    @httprettified
+    def setUp(self):
+        HTTPretty.register_uri(HTTPretty.POST, FAKE_EXCHANGE_URL,
+                               body=GET_ITEM_RESPONSE.encode('utf-8'),
+                               content_type='text/xml; charset=utf-8')
 
-  @httprettified
-  def setUp(self):
-    HTTPretty.register_uri(HTTPretty.POST, FAKE_EXCHANGE_URL,
-                                 body=GET_ITEM_RESPONSE.encode('utf-8'),
-                                 content_type='text/xml; charset=utf-8')
+        self.event = self.service.calendar().get_event(id=TEST_EVENT.id)
 
-    self.event = self.service.calendar().get_event(id=TEST_EVENT.id)
+    @httprettified
+    def test_resend_invites(self):
+        HTTPretty.register_uri(HTTPretty.POST, FAKE_EXCHANGE_URL,
+                               responses=[
+                                   self.get_change_key_response,
+                                   self.update_event_response,
+                               ])
+        self.event.resend_invitations()
 
+        assert TEST_EVENT.change_key in HTTPretty.last_request.body.decode(
+            'utf-8')
+        assert TEST_EVENT.subject not in HTTPretty.last_request.body.decode(
+            'utf-8')
 
-  @httprettified
-  def test_resend_invites(self):
-    HTTPretty.register_uri(HTTPretty.POST, FAKE_EXCHANGE_URL,
-                           responses=[
-                               self.get_change_key_response,
-                               self.update_event_response,
-                            ])
-    self.event.resend_invitations()
+    @httprettified
+    def test_cant_resend_invites_on_a_modified_event(self):
+        HTTPretty.register_uri(HTTPretty.POST, FAKE_EXCHANGE_URL,
+                               responses=[
+                                   self.get_change_key_response,
+                                   self.update_event_response,
+                               ])
 
-    assert TEST_EVENT.change_key in HTTPretty.last_request.body.decode('utf-8')
-    assert TEST_EVENT.subject not in HTTPretty.last_request.body.decode('utf-8')
+        self.event.subject = u'New event thing'
 
-  @httprettified
-  def test_cant_resend_invites_on_a_modified_event(self):
-    HTTPretty.register_uri(HTTPretty.POST, FAKE_EXCHANGE_URL,
-                           responses=[
-                               self.get_change_key_response,
-                               self.update_event_response,
-                            ])
-
-    self.event.subject = u'New event thing'
-
-    with raises(ValueError):
-      self.event.resend_invitations()
+        with raises(ValueError):
+            self.event.resend_invitations()

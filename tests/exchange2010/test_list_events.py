@@ -39,8 +39,10 @@ class Test_ParseEventListResponseData(unittest.TestCase):
         assert self.event_list is not None
 
     def test_dates_are_in_datetime_format(self):
-        assert 'StartDate="%s"' % TEST_EVENT_LIST_START.strftime(EXCHANGE_DATETIME_FORMAT) in HTTPretty.last_request.body.decode('utf-8')
-        assert 'EndDate="%s"' % TEST_EVENT_LIST_END.strftime(EXCHANGE_DATETIME_FORMAT) in HTTPretty.last_request.body.decode('utf-8')
+        assert 'StartDate="%s"' % TEST_EVENT_LIST_START.strftime(
+            EXCHANGE_DATETIME_FORMAT) in HTTPretty.last_request.body.decode('utf-8')
+        assert 'EndDate="%s"' % TEST_EVENT_LIST_END.strftime(
+            EXCHANGE_DATETIME_FORMAT) in HTTPretty.last_request.body.decode('utf-8')
 
     def test_event_count(self):
         assert self.event_list.count == 3
@@ -76,7 +78,7 @@ class Test_FailingToListEvents(unittest.TestCase):
         #     content_type='text/xml; charset=utf-8'
         # )
 
-        #with raises(FailedExchangeException):
+        # with raises(FailedExchangeException):
         #    self.service.calendar().list_events(
         #        start=TEST_EVENT_LIST_START,
         #        end=TEST_EVENT_LIST_END

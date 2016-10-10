@@ -15,49 +15,48 @@ from .fixtures import *
 
 
 class Test_MovingAFolder(unittest.TestCase):
-  service = None
-  folder = None
+    service = None
+    folder = None
 
-  @classmethod
-  def setUpClass(self):
-    self.service = Exchange2010Service(
-      connection=ExchangeNTLMAuthConnection(
-        url=FAKE_EXCHANGE_URL,
-        username=FAKE_EXCHANGE_USERNAME,
-        password=FAKE_EXCHANGE_PASSWORD,
-      )
-    )
+    @classmethod
+    def setUpClass(self):
+        self.service = Exchange2010Service(
+            connection=ExchangeNTLMAuthConnection(
+                url=FAKE_EXCHANGE_URL,
+                username=FAKE_EXCHANGE_USERNAME,
+                password=FAKE_EXCHANGE_PASSWORD,
+            )
+        )
 
-  @httprettified
-  def setUp(self):
+    @httprettified
+    def setUp(self):
 
-    HTTPretty.register_uri(
-      HTTPretty.POST,
-      FAKE_EXCHANGE_URL,
-      body=GET_FOLDER_RESPONSE.encode('utf-8'),
-      content_type='text/xml; charset=utf-8'
-    )
+        HTTPretty.register_uri(
+            HTTPretty.POST,
+            FAKE_EXCHANGE_URL,
+            body=GET_FOLDER_RESPONSE.encode('utf-8'),
+            content_type='text/xml; charset=utf-8'
+        )
 
-    self.folder = self.service.folder().get_folder(id=TEST_FOLDER.id)
+        self.folder = self.service.folder().get_folder(id=TEST_FOLDER.id)
 
+    def test_move_empty_folder_id(self):
+        with raises(TypeError):
+            self.folder.move_to(None)
 
-  def test_move_empty_folder_id(self):
-    with raises(TypeError):
-      self.folder.move_to(None)
+    def test_move_bad_folder_id_type(self):
+        with raises(TypeError):
+            self.folder.move_to(self.folder)
 
-  def test_move_bad_folder_id_type(self):
-    with raises(TypeError):
-      self.folder.move_to(self.folder)
+    @httprettified
+    def test_move(self):
 
-  @httprettified
-  def test_move(self):
+        HTTPretty.register_uri(
+            HTTPretty.POST,
+            FAKE_EXCHANGE_URL,
+            body=MOVE_FOLDER_RESPONSE.encode('utf-8'),
+            content_type='text/xml; charset=utf-8'
+        )
 
-    HTTPretty.register_uri(
-      HTTPretty.POST,
-      FAKE_EXCHANGE_URL,
-      body=MOVE_FOLDER_RESPONSE.encode('utf-8'),
-      content_type='text/xml; charset=utf-8'
-    )
-
-    self.folder.move_to('AABBCCDDEEFFGG==')
-    assert self.folder.parent_id == 'AABBCCDDEEFFGG=='
+        self.folder.move_to('AABBCCDDEEFFGG==')
+        assert self.folder.parent_id == 'AABBCCDDEEFFGG=='

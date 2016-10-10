@@ -15,49 +15,49 @@ from .fixtures import *
 
 
 class Test_MovingAnEvent(unittest.TestCase):
-  service = None
-  event = None
+    service = None
+    event = None
 
-  @classmethod
-  def setUpClass(cls):
-    cls.service = Exchange2010Service(
-      connection=ExchangeNTLMAuthConnection(
-        url=FAKE_EXCHANGE_URL,
-        username=FAKE_EXCHANGE_USERNAME,
-        password=FAKE_EXCHANGE_PASSWORD,
-      )
-    )
+    @classmethod
+    def setUpClass(cls):
+        cls.service = Exchange2010Service(
+            connection=ExchangeNTLMAuthConnection(
+                url=FAKE_EXCHANGE_URL,
+                username=FAKE_EXCHANGE_USERNAME,
+                password=FAKE_EXCHANGE_PASSWORD,
+            )
+        )
 
-  @httprettified
-  def setUp(self):
+    @httprettified
+    def setUp(self):
 
-    HTTPretty.register_uri(
-      HTTPretty.POST,
-      FAKE_EXCHANGE_URL,
-      body=GET_ITEM_RESPONSE.encode('utf-8'),
-      content_type='text/xml; charset=utf-8'
-    )
+        HTTPretty.register_uri(
+            HTTPretty.POST,
+            FAKE_EXCHANGE_URL,
+            body=GET_ITEM_RESPONSE.encode('utf-8'),
+            content_type='text/xml; charset=utf-8'
+        )
 
-    self.event = self.service.calendar().get_event(id=TEST_EVENT.id)
+        self.event = self.service.calendar().get_event(id=TEST_EVENT.id)
 
-  def test_move_empty_folder_id(self):
-    with raises(TypeError):
-      self.event.move_to(None)
+    def test_move_empty_folder_id(self):
+        with raises(TypeError):
+            self.event.move_to(None)
 
-  def test_move_bad_folder_id_type(self):
-    with raises(TypeError):
-      self.event.move_to(self.event)
+    def test_move_bad_folder_id_type(self):
+        with raises(TypeError):
+            self.event.move_to(self.event)
 
-  @httprettified
-  def test_move(self):
+    @httprettified
+    def test_move(self):
 
-    HTTPretty.register_uri(
-      HTTPretty.POST,
-      FAKE_EXCHANGE_URL,
-      body=MOVE_EVENT_RESPONSE.encode('utf-8'),
-      content_type='text/xml; charset=utf-8'
-    )
+        HTTPretty.register_uri(
+            HTTPretty.POST,
+            FAKE_EXCHANGE_URL,
+            body=MOVE_EVENT_RESPONSE.encode('utf-8'),
+            content_type='text/xml; charset=utf-8'
+        )
 
-    self.event.move_to('AAAhKSe7AAA=')
-    assert self.event.calendar_id == 'AAAhKSe7AAA='
-    assert self.event.id == TEST_EVENT_MOVED.id
+        self.event.move_to('AAAhKSe7AAA=')
+        assert self.event.calendar_id == 'AAAhKSe7AAA='
+        assert self.event.id == TEST_EVENT_MOVED.id

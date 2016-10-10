@@ -15,87 +15,87 @@ from .fixtures import *
 
 
 class Test_ParseFolderResponseData(unittest.TestCase):
-  folder = None
+    folder = None
 
-  @classmethod
-  def setUpClass(cls):
+    @classmethod
+    def setUpClass(cls):
 
-    @httpretty.activate  # this decorator doesn't play nice with @classmethod
-    def fake_folder_request():
+        @httpretty.activate  # this decorator doesn't play nice with @classmethod
+        def fake_folder_request():
 
-      service = Exchange2010Service(
-        connection=ExchangeNTLMAuthConnection(
-          url=FAKE_EXCHANGE_URL,
-          username=FAKE_EXCHANGE_USERNAME,
-          password=FAKE_EXCHANGE_PASSWORD,
-        )
-      )
+            service = Exchange2010Service(
+                connection=ExchangeNTLMAuthConnection(
+                    url=FAKE_EXCHANGE_URL,
+                    username=FAKE_EXCHANGE_USERNAME,
+                    password=FAKE_EXCHANGE_PASSWORD,
+                )
+            )
 
-      httpretty.register_uri(
-        httpretty.POST,
-        FAKE_EXCHANGE_URL,
-        body=GET_FOLDER_RESPONSE.encode('utf-8'),
-        content_type='text/xml; charset=utf-8',
-      )
+            httpretty.register_uri(
+                httpretty.POST,
+                FAKE_EXCHANGE_URL,
+                body=GET_FOLDER_RESPONSE.encode('utf-8'),
+                content_type='text/xml; charset=utf-8',
+            )
 
-      return service.folder().find_folder(parent_id=TEST_FOLDER.id)
+            return service.folder().find_folder(parent_id=TEST_FOLDER.id)
 
-    cls.folder = fake_folder_request()
+        cls.folder = fake_folder_request()
 
-  def test_canary(self):
-    for folder in self.folder:
-      assert folder is not None
+    def test_canary(self):
+        for folder in self.folder:
+            assert folder is not None
 
-  def test_folder_has_a_name(self):
-    for folder in self.folder:
-      assert folder is not None
+    def test_folder_has_a_name(self):
+        for folder in self.folder:
+            assert folder is not None
 
-  def test_folder_has_a_parent(self):
-    for folder in self.folder:
-      assert folder.parent_id == TEST_FOLDER.id
+    def test_folder_has_a_parent(self):
+        for folder in self.folder:
+            assert folder.parent_id == TEST_FOLDER.id
 
-  def test_folder_type(self):
-    for folder in self.folder:
-      assert folder is not None
+    def test_folder_type(self):
+        for folder in self.folder:
+            assert folder is not None
 
 
 class Test_FailingToGetFolders(unittest.TestCase):
 
-  service = None
+    service = None
 
-  @classmethod
-  def setUpClass(cls):
+    @classmethod
+    def setUpClass(cls):
 
-    cls.service = Exchange2010Service(
-      connection=ExchangeNTLMAuthConnection(
-        url=FAKE_EXCHANGE_URL,
-        username=FAKE_EXCHANGE_USERNAME,
-        password=FAKE_EXCHANGE_PASSWORD
-      )
-    )
+        cls.service = Exchange2010Service(
+            connection=ExchangeNTLMAuthConnection(
+                url=FAKE_EXCHANGE_URL,
+                username=FAKE_EXCHANGE_USERNAME,
+                password=FAKE_EXCHANGE_PASSWORD
+            )
+        )
 
-  @httpretty.activate
-  def test_requesting_an_folder_id_that_doest_exist_throws_exception(self):
+    @httpretty.activate
+    def test_requesting_an_folder_id_that_doest_exist_throws_exception(self):
 
-    httpretty.register_uri(
-      httpretty.POST, FAKE_EXCHANGE_URL,
-      body=FOLDER_DOES_NOT_EXIST.encode('utf-8'),
-      content_type='text/xml; charset=utf-8',
-    )
+        httpretty.register_uri(
+            httpretty.POST, FAKE_EXCHANGE_URL,
+            body=FOLDER_DOES_NOT_EXIST.encode('utf-8'),
+            content_type='text/xml; charset=utf-8',
+        )
 
-    with raises(ExchangeItemNotFoundException):
-      self.service.folder().find_folder(parent_id=TEST_FOLDER.id)
+        with raises(ExchangeItemNotFoundException):
+            self.service.folder().find_folder(parent_id=TEST_FOLDER.id)
 
-  @httpretty.activate
-  def test_requesting_an_folder_and_getting_a_500_response_throws_exception(self):
+    @httpretty.activate
+    def test_requesting_an_folder_and_getting_a_500_response_throws_exception(self):
 
-    httpretty.register_uri(
-      httpretty.POST,
-      FAKE_EXCHANGE_URL,
-      body=u"",
-      status=500,
-      content_type='text/xml; charset=utf-8',
-    )
+        httpretty.register_uri(
+            httpretty.POST,
+            FAKE_EXCHANGE_URL,
+            body=u"",
+            status=500,
+            content_type='text/xml; charset=utf-8',
+        )
 
-    with raises(FailedExchangeException):
-      self.service.folder().find_folder(parent_id=TEST_FOLDER.id)
+        with raises(FailedExchangeException):
+            self.service.folder().find_folder(parent_id=TEST_FOLDER.id)

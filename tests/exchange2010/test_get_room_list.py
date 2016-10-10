@@ -14,35 +14,35 @@ from .fixtures import *
 
 
 class Test_ParseRoomListResponseData(unittest.TestCase):
-  roomLists = None
+    roomLists = None
 
-  @classmethod
-  def setUpClass(cls):
+    @classmethod
+    def setUpClass(cls):
 
-    @httpretty.activate  # this decorator doesn't play nice with @classmethod
-    def fake_roomList_request():
-      service = Exchange2010Service(
-        connection=ExchangeNTLMAuthConnection(
-          url=FAKE_EXCHANGE_URL,
-          username=FAKE_EXCHANGE_USERNAME,
-          password=FAKE_EXCHANGE_PASSWORD,
-        )
-      )
+        @httpretty.activate  # this decorator doesn't play nice with @classmethod
+        def fake_roomList_request():
+            service = Exchange2010Service(
+                connection=ExchangeNTLMAuthConnection(
+                    url=FAKE_EXCHANGE_URL,
+                    username=FAKE_EXCHANGE_USERNAME,
+                    password=FAKE_EXCHANGE_PASSWORD,
+                )
+            )
 
-      httpretty.register_uri(
-        httpretty.POST,
-        FAKE_EXCHANGE_URL,
-        body=GET_ROOM_LIST_RESPONSE.encode('utf-8'),
-        content_type='text/xml; charset=utf-8',
-      )
+            httpretty.register_uri(
+                httpretty.POST,
+                FAKE_EXCHANGE_URL,
+                body=GET_ROOM_LIST_RESPONSE.encode('utf-8'),
+                content_type='text/xml; charset=utf-8',
+            )
 
-      return service.rooms().list_room_lists()
+            return service.rooms().list_room_lists()
 
-    cls.roomLists = fake_roomList_request()
+        cls.roomLists = fake_roomList_request()
 
-  def test_canary(self):
-    assert self.roomLists is not None
+    def test_canary(self):
+        assert self.roomLists is not None
 
-  def test_room_list_has_an_email(self):
-    for roomList in self.roomLists.roomLists:
-        assert roomList.get('email') == TEST_ROOM_LIST[0].email
+    def test_room_list_has_an_email(self):
+        for roomList in self.roomLists.roomLists:
+            assert roomList.get('email') == TEST_ROOM_LIST[0].email
