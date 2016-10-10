@@ -30,8 +30,7 @@ DISTINGUISHED_IDS = (
 
 
 def exchange_header():
-
-  return T.RequestServerVersion({u'Version': u'Exchange2010_SP1'})
+  return T.RequestServerVersion({u'Version': u'Exchange2010'})
 
 
 def resource_node(element, resources):
@@ -147,19 +146,57 @@ def get_item(exchange_id, format=u"Default"):
   )
   return root
 
-def get_calendar_items(format=u"Default", start=None, end=None, max_entries=999999,mailbox_address=None):
+def resolve_names(user_email):
+  """
+  <m:ResolveNames xmlns="http://schemas.microsoft.com/exchange/services/2006/messages"
+                  xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
+    <t:UnresolvedEntry>user@contoso.com</t:UnresolvedEntry>
+  <m:ResolveNames>
+  """
+  root = M.ResolveNames (
+          {u'ReturnFullContactData': u'true'},
+          M.UnresolvedEntry(user_email)
+        )
+
+  return root
+
+
+def get_room_lists():
+  return M.GetRoomLists()
+
+
+def get_rooms(roomList_email):
+  """
+  <m:GetRooms>
+    <m:RoomList>
+      <t:EmailAddress>RoomList@contoso.com</t:EmailAddress>
+    </m:RoomList>
+  </m:GetRooms>
+  """
+  root = M.GetRooms(
+          M.RoomList(
+              T.EmailAddress(roomList_email)
+          )
+        )
+  return root
+
+
+def get_calendar_items(format=u"Default", calendar_id=u'calendar', start=None, end=None, max_entries=999999, delegate_for=None):
   start = start.strftime(EXCHANGE_DATETIME_FORMAT)
   end = end.strftime(EXCHANGE_DATETIME_FORMAT)
 
-
-  if mailbox_address != None:
-    folder_ids_element = T.DistinguishedFolderId({u"Id":"calendar"},
-        T.Mailbox(
-          T.EmailAddress(unicode(mailbox_address))
-          )
+  if calendar_id == u'calendar':
+    if delegate_for is None:
+      target = M.ParentFolderIds(T.DistinguishedFolderId(Id=calendar_id))
+    else:
+      target = M.ParentFolderIds(
+        T.DistinguishedFolderId(
+          {'Id': 'calendar'},
+          T.Mailbox(T.EmailAddress(delegate_for))
         )
+      )
   else:
-    folder_ids_element = T.DistinguishedFolderId(Id=u"calendar")
+    target = M.ParentFolderIds(T.FolderId(Id=calendar_id))
 
   root = M.FindItem(
     {u'Traversal': u'Shallow'},
@@ -342,6 +379,10 @@ def new_event(event):
               xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
     <m:SavedItemFolderId>
         <t:DistinguishedFolderId Id="calendar"/>
+          <t:Mailbox>
+            <t:EmailAddress>{{ event.delegate_for }}</t:EmailAddress>
+          </t:Mailbox>
+        </t:DistinguishedFolderId>
     </m:SavedItemFolderId>
     <m:Items>
         <t:CalendarItem>
@@ -384,7 +425,18 @@ def new_event(event):
 </m:CreateItem>
   """
 
-  id = T.DistinguishedFolderId(Id=event.calendar_id) if event.calendar_id in DISTINGUISHED_IDS else T.FolderId(Id=event.calendar_id)
+  if event.calendar_id in DISTINGUISHED_IDS:
+    try:
+      id = T.DistinguishedFolderId(
+              T.Mailbox(
+                T.EmailAddress(event.delegate_for)
+              ),
+              Id=event.calendar_id,
+            )
+    except AttributeError:
+      id = T.DistinguishedFolderId(Id=event.calendar_id)
+  else:
+    id = T.FolderId(Id=event.calendar_id)
 
   start = convert_datetime_to_utc(event.start)
   end = convert_datetime_to_utc(event.end)

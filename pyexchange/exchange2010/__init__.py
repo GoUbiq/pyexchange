@@ -38,7 +38,7 @@ class Exchange2010Service(ExchangeServiceSOAP):
     raise NotImplementedError("Sorry - nothin' here. Feel like adding it? :)")
 
   def contacts(self):
-    raise NotImplementedError("Sorry - nothin' here. Feel like adding it? :)")
+    return Exchange2010ContactsService(service=self)
 
   def folder(self):
     return Exchange2010FolderService(service=self)
@@ -76,6 +76,8 @@ class Exchange2010Service(ExchangeServiceSOAP):
 
     # rooms = response.xpath(u'//m:Items/t:CalendarItem/t:RequiredAttendees/t:Attendee', namespaces=soap_request.NAMESPACES)
     return result
+  def rooms(self):
+    return Exchange2010RoomService(service=self)
 
   def _send_soap_request(self, body, headers=None, retries=2, timeout=30, encoding="utf-8"):
     headers = {
@@ -120,6 +122,25 @@ class Exchange2010Service(ExchangeServiceSOAP):
         raise FailedExchangeException(u"Exchange Fault (%s) from Exchange server" % code.text)
 
 
+class Exchange2010RoomService(object):
+  def __init__(self, service):
+    self.service = service
+
+  def list_room_lists(self):
+    return Exchange2010RoomList(service=self.service)
+
+  def list_rooms(self, roomList_email):
+    return Exchange2010Rooms(service=self.service, roomList_email=roomList_email)
+
+
+class Exchange2010ContactsService(object):
+  def __init__(self, service):
+    self.service = service
+
+  def search_contacts(self, search_key):
+    return Exchange2010Contacts(service=self.service, search_key=search_key)
+
+
 class Exchange2010CalendarService(BaseExchangeCalendarService):
 
   def event(self, id=None, **kwargs):
@@ -131,15 +152,147 @@ class Exchange2010CalendarService(BaseExchangeCalendarService):
   def new_event(self, **properties):
     return Exchange2010CalendarEvent(service=self.service, calendar_id=self.calendar_id, **properties)
 
-  def list_events(self, start=None, end=None, details=False, mailbox_address=None):
-    return Exchange2010CalendarEventList(service=self.service, start=start, end=end, details=details, mailbox_address=mailbox_address)
+  def list_events(self, start=None, end=None, details=False, delegate_for=None):
+    return Exchange2010CalendarEventList(service=self.service, calendar_id=self.calendar_id, start=start, end=end, details=details, delegate_for=delegate_for)
+
+
+class Exchange2010RoomList(object):
+  def __init__(self, service):
+    self.service = service
+    body = soap_request.get_room_lists()
+
+    response_xml = self.service.send(body)
+
+    self.roomLists = self._parse_all_roomLists(response_xml)
+    log.debug("Parsed room lists %s" % self.roomLists)
+
+    return
+
+  def _parse_all_roomLists(self, response):
+    roomListsDict = list()
+    roomLists = response.xpath(u'//m:RoomLists/t:Address', namespaces=soap_request.NAMESPACES)
+    self.count = len(roomLists)
+    log.debug(u'Found %s room lists' % self.count)
+
+    for room in roomLists:
+      roomListsDict.append(self._parse_roomList_properties(room))
+
+    return roomListsDict
+
+  def _parse_roomList_properties(self, response):
+    property_map = {
+      u'name': {
+        u'xpath': u't:Name',
+      },
+      u'email':
+      {
+        u'xpath': u't:EmailAddress',
+      },
+      u'routingType': {
+        u'xpath': u't:RoutingType',
+      },
+      u'mailboxType': {
+        u'xpath': u't:MailboxType',
+      },
+    }
+    return self.service._xpath_to_dict(element=response, property_map=property_map, namespace_map=soap_request.NAMESPACES)
+
+
+class Exchange2010Contacts(object):
+  def __init__(self, service, search_key):
+    self.service = service
+    body = soap_request.resolve_names(search_key)
+    log.debug("Searching contacts %s " % search_key)
+    response_xml = self.service.send(body)
+
+    self.contacts = self._parse_all_contacts(response_xml)
+
+    return
+
+  def _parse_all_contacts(self, response):
+    contactsDict = list()
+    contacts = response.xpath(u'//m:ResolveNamesResponseMessage/m:ResolutionSet/t:Resolution', namespaces=soap_request.NAMESPACES)
+    self.count = len(contacts)
+    log.debug(u'Found %s contacts' % self.count)
+
+    for contact in contacts:
+      contactsDict.append(self._parse_contact_properties(contact))
+
+    return contactsDict
+
+  def _parse_contact_properties(self, response):
+    property_map = {
+      u'name': {
+        u'xpath': u't:Mailbox/t:Name',
+      },
+      u'displayName': {
+        u'xpath': u't:Contact/t:DisplayName',
+      },
+      u'contactSource': {
+        u'xpath': u't:Contact/t:ContactSource',
+      },
+      u'email':
+      {
+        u'xpath': u't:Mailbox/t:EmailAddress',
+      },
+      u'routingType': {
+        u'xpath': u't:Mailbox/t:RoutingType',
+      },
+      u'mailboxType': {
+        u'xpath': u't:Mailbox/t:MailboxType',
+      },
+    }
+
+    return self.service._xpath_to_dict(element=response, property_map=property_map, namespace_map=soap_request.NAMESPACES)
+
+
+class Exchange2010Rooms(object):
+  def __init__(self, service, roomList_email):
+    self.service = service
+    body = soap_request.get_rooms(roomList_email)
+    log.debug("Searching rooms in %s list" % roomList_email)
+    response_xml = self.service.send(body)
+
+    self.rooms = self._parse_all_rooms(response_xml)
+
+    return
+
+  def _parse_all_rooms(self, response):
+    roomsDict = list()
+    rooms = response.xpath(u'//m:Rooms/t:Room', namespaces=soap_request.NAMESPACES)
+    self.count = len(rooms)
+    log.debug(u'Found %s rooms' % self.count)
+
+    for room in rooms:
+      roomsDict.append(self._parse_room_properties(room))
+
+    return roomsDict
+
+  def _parse_room_properties(self, response):
+    property_map = {
+      u'name': {
+        u'xpath': u't:Id/t:Name',
+      },
+      u'email':
+      {
+        u'xpath': u't:Id/t:EmailAddress',
+      },
+      u'routingType': {
+        u'xpath': u't:Id/t:RoutingType',
+      },
+      u'mailboxType': {
+        u'xpath': u't:Id/t:MailboxType',
+      },
+    }
+
+    return self.service._xpath_to_dict(element=response, property_map=property_map, namespace_map=soap_request.NAMESPACES)
 
 
 class Exchange2010CalendarEventList(object):
   """
   Creates & Stores a list of Exchange2010CalendarEvent items in the "self.events" variable.
   """
-  def __init__(self, service=None, start=None, end=None, details=False, mailbox_address=None):
+  def __init__(self, service=None, calendar_id=u'calendar', start=None, end=None, details=False, delegate_for=None):
     self.service = service
     self.count = 0
     self.start = start
@@ -147,11 +300,11 @@ class Exchange2010CalendarEventList(object):
     self.events = list()
     self.event_ids = list()
     self.details = details
-    self.mailbox_address = mailbox_address
+    self.delegate_for = delegate_for
+
     # This request uses a Calendar-specific query between two dates.
-    body = soap_request.get_calendar_items(format=u'AllProperties', start=self.start, end=self.end, mailbox_address=self.mailbox_address)
-    # import pdb; pdb.set_trace();
-    response_xml = self.service.send(body, mailbox_address=mailbox_address)
+    body = soap_request.get_calendar_items(format=u'AllProperties', calendar_id=calendar_id, start=self.start, end=self.end, delegate_for=self.delegate_for)
+    response_xml = self.service.send(body)
     self._parse_response_for_all_events(response_xml)
 
     # Populate the event ID list, for convenience reasons.
@@ -628,6 +781,17 @@ class Exchange2010CalendarEvent(BaseExchangeCalendarEvent):
       {
         u'xpath': u'//m:Items/t:CalendarItem/t:Recurrence/t:WeeklyRecurrence/t:DaysOfWeek',
       },
+      u'sensitivity':
+      {
+        u'xpath': u'//m:Items/t:CalendarItem/t:Sensitivity',
+      },
+      u'is_cancelled':
+      {
+        u'xpath': u'//m:Items/t:CalendarItem/t:IsCancelled',
+        u'cast': u'bool',
+      },
+
+
     }
 
     result = self.service._xpath_to_dict(element=response, property_map=property_map, namespace_map=soap_request.NAMESPACES)
@@ -850,6 +1014,7 @@ class Exchange2010FolderService(BaseExchangeFolderService):
       body = soap_request.find_folder(parent_id=parent_id, format=u'AllProperties')
     else:
       body = soap_request.find_folder_deep(parent_id=parent_id, format=u'AllProperties')
+
     response_xml = self.service.send(body)
     return self._parse_response_for_find_folder(response_xml)
 

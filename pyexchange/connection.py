@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software?distributed 
 import requests
 from requests_ntlm import HttpNtlmAuth
 from requests.auth import HTTPBasicAuth
+
 import logging
 
 from .exceptions import FailedExchangeException
@@ -24,11 +25,11 @@ class ExchangeBaseConnection(object):
 class ExchangeNTLMAuthConnection(ExchangeBaseConnection):
   """ Connection to Exchange that uses NTLM authentication """
 
-  def __init__(self, url, username, password, **kwargs):
+  def __init__(self, url, username, password, verify_certificate=True, **kwargs):
     self.url = url
     self.username = username
     self.password = password
-
+    self.verify_certificate = verify_certificate
     self.handler = None
     self.session = None
     self.password_manager = None
@@ -37,7 +38,7 @@ class ExchangeNTLMAuthConnection(ExchangeBaseConnection):
     if self.password_manager:
       return self.password_manager
 
-    log.debug(u'Constructing password manager')
+    log.debug(u'Constructing NTLM auth password manager')
 
     self.password_manager = HttpNtlmAuth(self.username, self.password)
 
@@ -47,7 +48,7 @@ class ExchangeNTLMAuthConnection(ExchangeBaseConnection):
     if self.session:
       return self.session
 
-    log.debug(u'Constructing opener')
+    log.debug(u'Constructing NTLM auth opener')
 
     self.password_manager = self.build_password_manager()
 
@@ -61,11 +62,11 @@ class ExchangeNTLMAuthConnection(ExchangeBaseConnection):
       self.session = self.build_session()
 
     try:
-      response = self.session.post(self.url, data=body, headers=headers, verify=False)
+      response = self.session.post(self.url, data=body, headers=headers, verify = self.verify_certificate)
       response.raise_for_status()
     except requests.exceptions.RequestException as err:
-      log.debug(err.response)
-      raise FailedExchangeException(u'Unable to connect to Exchange: %s' % err)
+      log.debug(err.response.content)
+      raise FailedExchangeException(u'Unable to connect to Exchange with NTLM: %s' % err)
 
     log.info(u'Got response: {code}'.format(code=response.status_code))
     log.debug(u'Got response headers: {headers}'.format(headers=response.headers))
@@ -73,14 +74,15 @@ class ExchangeNTLMAuthConnection(ExchangeBaseConnection):
 
     return response.text
 
-class ExchangeHTTPBasicAuthConnection(ExchangeBaseConnection):
-  """ Connection to Exchange that uses NTLM authentication """
 
-  def __init__(self, url, username, password, **kwargs):
+class ExchangeBasicAuthConnection(ExchangeBaseConnection):
+  """ Connection to Exchange, Office365 that uses Basic authentication """
+
+  def __init__(self, url, username, password, verify_certificate=True, **kwargs):
     self.url = url
     self.username = username
     self.password = password
-
+    self.verify_certificate = verify_certificate
     self.handler = None
     self.session = None
     self.password_manager = None
@@ -89,7 +91,7 @@ class ExchangeHTTPBasicAuthConnection(ExchangeBaseConnection):
     if self.password_manager:
       return self.password_manager
 
-    log.debug(u'Constructing password manager')
+    log.debug(u'Constructing basic auth password manager')
 
     self.password_manager = HTTPBasicAuth(self.username, self.password)
 
@@ -99,7 +101,7 @@ class ExchangeHTTPBasicAuthConnection(ExchangeBaseConnection):
     if self.session:
       return self.session
 
-    log.debug(u'Constructing opener')
+    log.debug(u'Constructing opener with Basic auth')
 
     self.password_manager = self.build_password_manager()
 
@@ -113,11 +115,11 @@ class ExchangeHTTPBasicAuthConnection(ExchangeBaseConnection):
       self.session = self.build_session()
 
     try:
-      response = self.session.post(self.url, data=body, headers=headers, verify=True)
+      response = self.session.post(self.url, data=body, headers=headers, verify = self.verify_certificate)
       response.raise_for_status()
     except requests.exceptions.RequestException as err:
-      log.debug(err.response)
-      raise FailedExchangeException(u'Unable to connect to Exchange: %s' % err)
+      log.debug(err.response.content)
+      raise FailedExchangeException(u'Unable to connect to Exchange with Basic auth: %s' % err)
 
     log.info(u'Got response: {code}'.format(code=response.status_code))
     log.debug(u'Got response headers: {headers}'.format(headers=response.headers))

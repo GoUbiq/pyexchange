@@ -73,15 +73,16 @@ class ExchangeServiceSOAP(object):
     response = self.connection.send(body, headers, retries, timeout)
     return response
 
-  # def _add_impersonation_header(self, exchange_xml):
-
-
   def _wrap_soap_xml_request(self, exchange_xml, mailbox_address=None):
     if mailbox_address is None:
-      root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'})), S.Body(exchange_xml))
+      root = S.Envelope(S.Header(T.RequestServerVersion(self._exchange_header())), S.Body(exchange_xml))
     else:
-      root = S.Envelope(S.Header(T.RequestServerVersion({u'Version': u'Exchange2010_SP2'}), T.ExchangeImpersonation(T.ConnectingSID(T.SmtpAddress(mailbox_address))), T.TimeZoneContext(T.TimeZoneDefinition({u'Id':u'UTC'}))), S.Body(exchange_xml))
+      root = S.Envelope(S.Header(T.RequestServerVersion(self._exchange_header()), T.ExchangeImpersonation(T.ConnectingSID(T.SmtpAddress(mailbox_address))), T.TimeZoneContext(T.TimeZoneDefinition({u'Id':u'UTC'}))), S.Body(exchange_xml))
+
     return root
+
+  def _exchange_header(self):
+    return T.RequestServerVersion({u'Version': u'Exchange2010'})
 
   def _parse_date(self, date_string):
     # date = datetime.strptime(date_str, self.EXCHANGE_DATE_FORMAT)
